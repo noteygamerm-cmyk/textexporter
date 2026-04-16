@@ -1,0 +1,1179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Gradient Text Export</title>
+<style>
+/* Aktiv Grotesk Extended – Thin (Weight 100) */
+@font-face {
+  font-family: 'AktivGroteskEx';
+  src: url('/fonts/AktivGroteskEx-Thin.woff2') format('woff2');
+  font-weight: 100;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Aktiv Grotesk Extended – Regular (Weight 400) */
+@font-face {
+  font-family: 'AktivGroteskEx';
+  src: url('/fonts/AktivGroteskEx-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Aktiv Grotesk Extended – Medium (Weight 500) */
+@font-face {
+  font-family: 'AktivGroteskEx';
+  src: url('/fonts/AktivGroteskEx-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Aktiv Grotesk Extended – Bold (Weight 700) */
+@font-face {
+  font-family: 'AktivGroteskEx';
+  src: url('/fonts/AktivGroteskEx-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Infinix Display – Regular (Weight 400) */
+@font-face {
+  font-family: 'InfinixDisplay';
+  src: url('/fonts/InfinixDisplay-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+  /* ===== BASE STYLES ===== */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --grad: linear-gradient(90deg, #1884f3, #fc3457 47%, #ff8a43 99%);
+    --bg: #0a0a0a;
+    --surface: #111111;
+    --border: rgba(255,255,255,0.07);
+    --muted: rgba(255,255,255,0.35);
+  }
+
+  html, body {
+    min-height: 100vh;
+    background: var(--bg);
+    color: #fff;
+    font-family: 'AktivGroteskEx', sans-serif;
+  }
+
+  body {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 32px 16px; gap: 24px;
+  }
+
+  .grad {
+    background: var(--grad);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .hero { text-align: center; max-width: 900px; width:100%; }
+  .hero-label {
+    font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 16px;
+  }
+  .hero-text {
+    font-size: clamp(36px, 10vw, 120px);
+    line-height: 0.92; letter-spacing: -0.03em; font-weight: 700;
+  }
+
+  .swatch-strip {
+    width: 100%; max-width: 900px; height: 2px;
+    background: var(--grad); border-radius: 99px;
+  }
+
+  .card {
+    width: 100%; max-width: 900px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px; padding: 20px 18px;
+    display: flex; flex-direction: column; gap: 20px;
+  }
+
+  .card-label {
+    font-size: 10px; letter-spacing: 0.2em;
+    text-transform: uppercase; color: var(--muted);
+  }
+
+  .css-preview {
+    font-family: 'AktivGroteskEx', sans-serif;
+    font-size: clamp(22px, 5vw, 52px);
+    font-weight: 400; /* will be overridden by JS */
+    letter-spacing: -0.02em; line-height: 1.3;
+    min-height: 80px; white-space: pre-wrap; word-break: break-word;
+  }
+  .css-preview .line { display: block; width: max-content; }
+  .css-preview.mode-gradient .line {
+    background: linear-gradient(90deg, #1884f3, #fc3457 47%, #ff8a43 99%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  }
+  .css-preview.mode-white .line  { color: #fff; -webkit-text-fill-color: #fff; background: none; -webkit-background-clip: unset; }
+  .css-preview.mode-black .line  { color: #000; -webkit-text-fill-color: #000; background: none; -webkit-background-clip: unset; }
+
+  .preview-bg-dark  { background: transparent; }
+  .preview-bg-light { background: #e8e8e8; border-radius: 10px; padding: 20px 24px; display: inline-block; }
+
+  #editable {
+    font-family: 'AktivGroteskEx', sans-serif;
+    font-size: 15px; line-height: 1.5;
+    background: #0f0f0f; border: 1px solid var(--border);
+    border-radius: 8px; color: rgba(255,255,255,0.6);
+    padding: 14px 14px; resize: vertical;
+    outline: none; width: 100%; min-height: 60px;
+    caret-color: #ff8a43;
+  }
+  #editable:focus { border-color: rgba(255,255,255,0.18); }
+
+  #gradient-maker { display:flex; flex-direction:column; gap:10px; }
+  .gm-bar-wrap { position:relative; }
+  .gm-handle-row { position:relative; height:24px; }
+  .gm-handle {
+    position:absolute; top:0; transform:translateX(-50%);
+    width:14px; height:14px; border-radius:50%;
+    border:2px solid #fff; cursor:ew-resize; box-shadow:0 0 0 1px rgba(0,0,0,0.5);
+    transition: border-color 0.15s;
+  }
+  .gm-handle.selected { border-color:#ff8a43; width:20px; height:20px; top:-1px; }
+  .gm-stops { display:flex; flex-wrap:wrap; gap:8px; }
+  .gm-stop-chip {
+    display:flex; align-items:center; gap:6px;
+    background:rgba(255,255,255,0.06); border:1px solid var(--border);
+    border-radius:99px; padding:4px 10px 4px 6px; cursor:pointer;
+    font-size:11px; color:var(--muted); transition:all 0.15s;
+  }
+  .gm-stop-chip.selected { border-color:rgba(255,255,255,0.35); color:#fff; }
+  .gm-stop-chip .chip-swatch { width:14px; height:14px; border-radius:50%; border:1px solid rgba(255,255,255,0.15); }
+  .gm-stop-chip .chip-del { margin-left:4px; opacity:0.4; font-size:13px; line-height:1; }
+  .gm-stop-chip .chip-del:hover { opacity:1; }
+  .gm-footer { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .gm-stop-editor { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .add-stop-btn {
+    font-family:'AktivGroteskEx',sans-serif; font-size:11px; font-weight:600; letter-spacing:0.08em; text-transform:uppercase;
+    padding:6px 14px; border-radius:99px; cursor:pointer;
+    border:1px dashed rgba(255,255,255,0.2); background:transparent; color:var(--muted);
+    transition:all 0.18s;
+  }
+  .add-stop-btn:hover { border-color:rgba(255,255,255,0.4); color:#fff; }
+  .gm-text-mode-row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .dot-gradient { background: linear-gradient(90deg, #1884f3, #fc3457, #ff8a43); }
+  .dot-white    { background: #fff; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.3); }
+  .dot-black    { background: #000; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.2); }
+  .mode-picker { display: flex; gap: 8px; flex-wrap: wrap; }
+  .mode-btn {
+    font-family: 'AktivGroteskEx', sans-serif;
+    font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+    padding: 8px 18px; border-radius: 99px; cursor: pointer;
+    border: 1px solid var(--border); background: transparent; color: var(--muted);
+    transition: all 0.18s; display: flex; align-items: center; gap: 7px;
+  }
+  .mode-btn:hover { border-color: rgba(255,255,255,0.25); color: #fff; }
+  .mode-btn.active { border-color: rgba(255,255,255,0.5); color: #fff; background: rgba(255,255,255,0.07); }
+  .mode-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+  .controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
+  .ctrl-group { display: flex; flex-direction: column; gap: 5px; }
+  .ctrl-label { font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); }
+  .ctrl-group input[type=range] {
+    -webkit-appearance: none; appearance: none;
+    width: 100%; min-width: 80px; max-width: 180px; height: 3px; background: var(--border); border-radius: 99px; cursor: pointer;
+  }
+  .ctrl-group input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: #fff; cursor: pointer;
+  }
+  .ctrl-group select {
+    font-family: 'AktivGroteskEx', sans-serif;
+    font-size: 12px; background: #1a1a1a; border: 1px solid var(--border);
+    color: #fff; padding: 5px 10px; border-radius: 6px; cursor: pointer; outline: none;
+  }
+  .ctrl-val { font-size: 10px; color: var(--muted); min-width: 36px; display: inline-block; }
+
+  .export-btn {
+    margin-left: auto;
+    min-width: 140px;
+    font-family: 'AktivGroteskEx', sans-serif;
+    font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+    padding: 12px 28px; background: var(--grad);
+    border: none; border-radius: 99px; color: #fff; cursor: pointer;
+    transition: opacity 0.2s, transform 0.15s; white-space: nowrap;
+  }
+  .export-btn:hover { opacity: 0.88; transform: scale(1.03); }
+  .export-btn:active { transform: scale(0.97); }
+
+  .preview-wrap { display: none; flex-direction: column; gap: 12px; }
+  .preview-wrap.visible { display: flex; }
+  .preview-label { font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); }
+
+  .checkerboard {
+    border-radius: 8px; overflow: hidden;
+    background-image: repeating-conic-gradient(#1c1c1c 0% 25%, #252525 0% 50%);
+    background-size: 16px 16px;
+    display: inline-block; max-width: 100%;
+  }
+  .checkerboard img { display: block; max-width: 100%; height: auto; }
+
+  .ios-hint {
+    display: none;
+    font-size: 11px; color: var(--muted);
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 14px;
+    line-height: 1.5;
+  }
+  .ios-hint strong { color: #fff; }
+
+  .dl-btn {
+    font-family: 'AktivGroteskEx', sans-serif;
+    font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase;
+    padding: 10px 22px; border-radius: 99px;
+    background: transparent; border: 1px solid var(--border);
+    color: #fff; cursor: pointer; align-self: flex-start;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .dl-btn:hover { border-color: rgba(255,255,255,0.25); background: rgba(255,255,255,0.05); }
+
+  #preview-canvas { display: none; }
+
+  .footer {
+    font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase;
+    color: rgba(255,255,255,0.18); text-align: center;
+  }
+
+  /* ===== CUSTOM COLOR PICKER ===== */
+  .cp-panel {
+    margin-top: 12px;
+    padding: 16px 14px;
+    background: #1a1a1a;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 100%;
+  }
+  .cp-hue-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .cp-hue-row label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    width: 34px;
+  }
+  .cp-hue-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    flex: 1;
+    height: 8px;
+    border-radius: 99px;
+    background: linear-gradient(to right,
+      #f00 0%, #ff0 17%, #0f0 33%,
+      #0ff 50%, #00f 67%, #f0f 83%, #f00 100%
+    );
+  }
+  .cp-hue-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #fff;
+    border: 2px solid #222;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    cursor: pointer;
+  }
+  .cp-sl-canvas-wrap {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    max-width: 200px;
+    margin: 0 auto;
+  }
+  #cp-sl-canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    cursor: crosshair;
+  }
+  .cp-sl-handle {
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 2px solid white;
+    box-shadow: 0 1px 5px rgba(0,0,0,0.5);
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    background: transparent;
+  }
+  .cp-footer {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .cp-hex-input {
+    flex: 1;
+    background: #0f0f0f;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-family: 'AktivGroteskEx', monospace;
+    font-size: 14px;
+    color: #fff;
+    text-transform: uppercase;
+  }
+  .cp-close-btn {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+  }
+  .cp-close-btn:hover {
+    border-color: rgba(255,255,255,0.25);
+    color: #fff;
+  }
+  .stop-color-preview {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.15);
+    background: #f00;
+    cursor: pointer;
+    transition: transform 0.1s;
+  }
+  .stop-color-preview:hover { transform: scale(1.02); }
+  .gm-stop-editor {
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .hex-field-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    min-width: 140px;
+  }
+  .hex-field-row input {
+    flex: 1;
+    background: #0f0f0f;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    color: #fff;
+    font-family: monospace;
+    font-size: 13px;
+    text-transform: uppercase;
+  }
+  .pick-btn {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .pick-btn:hover { border-color: rgba(255,255,255,0.25); color: #fff; }
+
+  /* ===== SAVE/LOAD BUTTONS ===== */
+  .save-load-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 5px;
+  }
+  .save-btn, .load-btn, .reset-btn {
+    font-family: 'AktivGroteskEx', sans-serif;
+    font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+    padding: 8px 16px; border-radius: 99px; cursor: pointer;
+    border: 1px solid var(--border); background: transparent; color: var(--muted);
+    transition: all 0.18s;
+  }
+  .save-btn:hover, .load-btn:hover, .reset-btn:hover {
+    border-color: rgba(255,255,255,0.25); color: #fff;
+  }
+  .save-notice {
+    font-size: 10px; color: #4ade80; opacity: 0; transition: opacity 0.2s;
+    margin-left: 10px;
+  }
+  .save-notice.show { opacity: 1; }
+
+  @media (max-width: 540px) {
+    .controls { flex-direction: column; align-items: stretch; }
+    .ctrl-group { width: 100%; }
+    .ctrl-group input[type=range] { width: 100%; }
+    .ctrl-group select { width: 100%; }
+    .export-btn { width: 100%; margin-left: 0; }
+    .gm-footer { flex-direction: column; align-items: stretch; }
+    .gm-stop-editor { width: 100%; }
+    .gm-text-mode-row { gap: 6px; }
+    .mode-btn { padding: 7px 12px; font-size: 10px; }
+    .card { padding: 16px 14px; gap: 16px; }
+    .hero-text { line-height: 0.96; }
+    body { padding: 20px 12px; gap: 20px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-label">Gradient Text Export · Aktiv Grotesk Ex + Infinix Display</div>
+  <div class="hero-text grad" id="hero-text">Text<br>Export</div>
+</div>
+
+<div class="swatch-strip"></div>
+
+<div class="card">
+  <div class="card-label">CSS Preview — width: max-content per line</div>
+
+  <div id="preview-bg" class="preview-bg-dark">
+    <div class="css-preview mode-gradient" id="css-preview">
+      <span class="line">Type below to preview</span>
+    </div>
+  </div>
+
+  <textarea id="editable" rows="2" placeholder="Type your text here… (Enter for new line)">Type below to preview</textarea>
+
+  <div class="card-label" style="margin-bottom:-8px">Gradient Maker</div>
+  <div id="gradient-maker">
+    <div class="gm-stops" id="gm-stops"></div>
+    <div class="gm-bar-wrap">
+      <canvas id="gm-bar" height="36" style="width:100%;height:36px;border-radius:6px;cursor:pointer;display:block;"></canvas>
+      <div class="gm-handle-row" id="gm-handle-row"></div>
+    </div>
+    <div class="gm-footer">
+      <div class="gm-stop-editor" id="gm-stop-editor"></div>
+      <div style="display:flex;gap:8px;align-items:center;margin-left:auto;flex-shrink:0;">
+        <button class="mode-btn" id="angle-dec" onclick="changeAngle(-15)">◂</button>
+        <span class="ctrl-val" id="angle-val" style="min-width:40px;text-align:center;color:#fff;font-size:12px;">90°</span>
+        <button class="mode-btn" id="angle-inc" onclick="changeAngle(15)">▸</button>
+      </div>
+    </div>
+    <div class="gm-text-mode-row">
+      <span class="ctrl-label">Text fill:</span>
+      <button class="mode-btn active" data-fill="gradient" onclick="setFill('gradient',this)">
+        <span class="mode-dot dot-gradient"></span> Gradient
+      </button>
+      <button class="mode-btn" data-fill="white" onclick="setFill('white',this)">
+        <span class="mode-dot dot-white"></span> White
+      </button>
+      <button class="mode-btn" data-fill="black" onclick="setFill('black',this)">
+        <span class="mode-dot dot-black"></span> Black
+      </button>
+    </div>
+
+    <!-- Save / Load Controls -->
+    <div class="save-load-row">
+      <button class="save-btn" onclick="saveGradient()">💾 Save to Browser</button>
+      <button class="load-btn" onclick="loadGradient()">📂 Load Saved</button>
+      <button class="reset-btn" onclick="resetGradient()">↻ Reset Default</button>
+      <span class="save-notice" id="save-notice">✓ Saved!</span>
+    </div>
+  </div>
+
+  <div class="controls">
+    <div class="ctrl-group">
+      <span class="ctrl-label">Font Size <span class="ctrl-val" id="size-val">52px</span></span>
+      <input type="range" id="font-size" min="20" max="300" value="52">
+    </div>
+    <div class="ctrl-group">
+      <span class="ctrl-label">Padding <span class="ctrl-val" id="pad-val">0px</span></span>
+      <input type="range" id="padding" min="0" max="120" value="0">
+    </div>
+    <div class="ctrl-group">
+      <span class="ctrl-label">Scale</span>
+      <select id="scale">
+        <option value="1">1× (screen)</option>
+        <option value="2" selected>2× (retina)</option>
+        <option value="3">3× (hi-res)</option>
+        <option value="4">4× (ultra)</option>
+      </select>
+    </div>
+    <div class="ctrl-group">
+      <span class="ctrl-label">Font</span>
+      <select id="font-family">
+        <option value="AktivGroteskEx">Aktiv Grotesk Ex</option>
+        <option value="InfinixDisplay">Infinix Display</option>
+      </select>
+    </div>
+    <div class="ctrl-group">
+      <span class="ctrl-label">Weight</span>
+      <select id="font-weight">
+        <!-- populated dynamically -->
+      </select>
+    </div>
+    <button class="export-btn" onclick="exportPNG()">↓ Export PNG</button>
+  </div>
+
+  <div class="preview-wrap" id="preview-wrap">
+    <span class="preview-label">PNG preview — transparent background shown as checkerboard</span>
+    <div class="checkerboard">
+      <img id="preview-img" src="" alt="PNG preview">
+    </div>
+    <div class="ios-hint" id="ios-hint">
+      <strong>iOS:</strong> Tap <strong>Open image in new tab</strong> below, then <strong>long-press the image → Save to Photos</strong> (or Share → Save Image).
+    </div>
+    <button class="dl-btn" id="dl-btn">↓ Download PNG</button>
+  </div>
+</div>
+
+<canvas id="preview-canvas"></canvas>
+
+<div class="footer">width: max-content · per-line gradient · transparent PNG · iOS + Android</div>
+
+<script>
+  (function(){
+    // ----- DOM Elements -----
+    const ta        = document.getElementById('editable');
+    const preview   = document.getElementById('css-preview');
+    const previewBg = document.getElementById('preview-bg');
+    const fsSlider  = document.getElementById('font-size');
+    const padSlider = document.getElementById('padding');
+    const ffSelect  = document.getElementById('font-family');
+    const weightSelect = document.getElementById('font-weight');
+
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+                  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+    const STORAGE_KEY = 'gradient-text-export-settings';
+
+    // ----- Default Gradient State -----
+    const DEFAULT_STOPS = [
+      { pos: 0,    color: '#1884f3' },
+      { pos: 0.47, color: '#fc3457' },
+      { pos: 0.99, color: '#ff8a43' },
+    ];
+    const DEFAULT_ANGLE = 90;
+    const DEFAULT_FILL = 'gradient';
+
+    // ----- Current State -----
+    let stops = JSON.parse(JSON.stringify(DEFAULT_STOPS));
+    let selectedStop = 0;
+    let gradAngle = DEFAULT_ANGLE;
+    let currentFill = DEFAULT_FILL;
+    let currentWeight = 400;   // default weight
+    let pickerVisible = false;
+    let currentHue = 210, currentSat = 0.9, currentLight = 0.54;
+
+    // ----- Weight Options Management -----
+    function updateWeightOptions(fontFamily) {
+      const currentVal = weightSelect.value;
+      
+      if (fontFamily === 'InfinixDisplay') {
+        weightSelect.innerHTML = '<option value="400">Regular (400)</option>';
+      } else {
+        weightSelect.innerHTML = `
+          <option value="100">Thin (100)</option>
+          <option value="400">Regular (400)</option>
+          <option value="500">Medium (500)</option>
+          <option value="700">Bold (700)</option>
+        `;
+      }
+      
+      // Preserve weight if possible, otherwise default to 400
+      if (weightSelect.querySelector(`option[value="${currentVal}"]`)) {
+        weightSelect.value = currentVal;
+      } else {
+        weightSelect.value = '400';
+      }
+      currentWeight = parseInt(weightSelect.value);
+    }
+
+    // ----- localStorage Functions -----
+    function saveToStorage() {
+      const settings = {
+        stops: stops,
+        angle: gradAngle,
+        fill: currentFill,
+        weight: currentWeight
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+      const notice = document.getElementById('save-notice');
+      notice.classList.add('show');
+      setTimeout(() => notice.classList.remove('show'), 1500);
+    }
+
+    function loadFromStorage() {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        try {
+          const settings = JSON.parse(saved);
+          if (settings.stops && Array.isArray(settings.stops) && settings.stops.length >= 2) {
+            stops = settings.stops;
+          }
+          if (typeof settings.angle === 'number') {
+            gradAngle = settings.angle;
+          }
+          if (settings.fill && ['gradient', 'white', 'black'].includes(settings.fill)) {
+            currentFill = settings.fill;
+          }
+          if (typeof settings.weight === 'number') {
+            currentWeight = settings.weight;
+          }
+          selectedStop = 0;
+          renderAll();
+          updateFillButtons();
+          updatePreview();
+          // Update weight dropdown to reflect loaded value
+          updateWeightOptions(ffSelect.value);
+          weightSelect.value = currentWeight;
+          return true;
+        } catch(e) { console.warn('Failed to parse saved settings'); }
+      }
+      return false;
+    }
+
+    function updateFillButtons() {
+      document.querySelectorAll('[data-fill]').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.dataset.fill === currentFill) btn.classList.add('active');
+      });
+    }
+
+    window.saveGradient = function() {
+      saveToStorage();
+    };
+
+    window.loadGradient = function() {
+      if (loadFromStorage()) {
+        const notice = document.getElementById('save-notice');
+        notice.textContent = '✓ Loaded!';
+        notice.classList.add('show');
+        setTimeout(() => { notice.textContent = '✓ Saved!'; notice.classList.remove('show'); }, 1500);
+      } else {
+        alert('No saved gradient found.');
+      }
+    };
+
+    window.resetGradient = function() {
+      stops = JSON.parse(JSON.stringify(DEFAULT_STOPS));
+      gradAngle = DEFAULT_ANGLE;
+      currentFill = DEFAULT_FILL;
+      currentWeight = 400;
+      selectedStop = 0;
+      renderAll();
+      updateFillButtons();
+      updateWeightOptions(ffSelect.value);
+      weightSelect.value = currentWeight;
+      updatePreview();
+      const notice = document.getElementById('save-notice');
+      notice.textContent = '↻ Reset!';
+      notice.classList.add('show');
+      setTimeout(() => { notice.textContent = '✓ Saved!'; notice.classList.remove('show'); }, 1500);
+    };
+
+    function autoSave() {
+      saveToStorage();
+    }
+
+    // ----- Helper Functions -----
+    function gradientCSS() {
+      const s = [...stops].sort((a,b)=>a.pos-b.pos);
+      const stops_str = s.map(st => st.color + ' ' + Math.round(st.pos*100)+'%').join(', ');
+      return `linear-gradient(${gradAngle}deg, ${stops_str})`;
+    }
+
+    function hslToHex(h, s, l) {
+      h = ((h % 360) + 360) % 360;
+      const c = (1 - Math.abs(2 * l - 1)) * s;
+      const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+      const m = l - c/2;
+      let r, g, b;
+      if (h < 60) { r = c; g = x; b = 0; }
+      else if (h < 120) { r = x; g = c; b = 0; }
+      else if (h < 180) { r = 0; g = c; b = x; }
+      else if (h < 240) { r = 0; g = x; b = c; }
+      else if (h < 300) { r = x; g = 0; b = c; }
+      else { r = c; g = 0; b = x; }
+      r = Math.round((r + m) * 255);
+      g = Math.round((g + m) * 255);
+      b = Math.round((b + m) * 255);
+      return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase();
+    }
+
+    function hexToHsl(hex) {
+      let r = parseInt(hex.slice(1,3), 16) / 255;
+      let g = parseInt(hex.slice(3,5), 16) / 255;
+      let b = parseInt(hex.slice(5,7), 16) / 255;
+      const max = Math.max(r, g, b), min = Math.min(r, g, b);
+      let h, s, l = (max + min) / 2;
+      if (max === min) h = s = 0;
+      else {
+        const d = max - min;
+        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+        switch (max) {
+          case r: h = ((g - b) / d + (g < b ? 6 : 0)) * 60; break;
+          case g: h = ((b - r) / d + 2) * 60; break;
+          case b: h = ((r - g) / d + 4) * 60; break;
+        }
+      }
+      return { h, s, l };
+    }
+
+    function hslToRgb(h, s, l) {
+      h = ((h % 360) + 360) % 360;
+      const c = (1 - Math.abs(2 * l - 1)) * s;
+      const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+      const m = l - c/2;
+      let r, g, b;
+      if (h < 60) { r = c; g = x; b = 0; }
+      else if (h < 120) { r = x; g = c; b = 0; }
+      else if (h < 180) { r = 0; g = c; b = x; }
+      else if (h < 240) { r = 0; g = x; b = c; }
+      else if (h < 300) { r = x; g = 0; b = c; }
+      else { r = c; g = 0; b = x; }
+      return [(r+m)*255, (g+m)*255, (b+m)*255];
+    }
+
+    function drawSLCanvas() {
+      const canvas = document.getElementById('cp-sl-canvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width = 200;
+      const h = canvas.height = 200;
+      const imageData = ctx.createImageData(w, h);
+      const data = imageData.data;
+      for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+          const sat = x / w;
+          const light = 1 - y / h;
+          const rgb = hslToRgb(currentHue, sat, light);
+          const idx = (y * w + x) * 4;
+          data[idx] = rgb[0];
+          data[idx+1] = rgb[1];
+          data[idx+2] = rgb[2];
+          data[idx+3] = 255;
+        }
+      }
+      ctx.putImageData(imageData, 0, 0);
+      const handleX = currentSat * w;
+      const handleY = (1 - currentLight) * h;
+      const handle = document.getElementById('cp-sl-handle');
+      if (handle) { handle.style.left = handleX + 'px'; handle.style.top = handleY + 'px'; }
+    }
+
+    function updateColorFromHsl() {
+      const hex = hslToHex(currentHue, currentSat, currentLight);
+      stops[selectedStop].color = hex;
+      const hexField = document.getElementById('hex-input-field');
+      const panelHex = document.getElementById('cp-hex-input');
+      if (hexField) hexField.value = hex;
+      if (panelHex) panelHex.value = hex;
+      const previewSwatch = document.querySelector('.stop-color-preview');
+      if (previewSwatch) previewSwatch.style.background = hex;
+      renderGmBar();
+      renderHandles();
+      renderChips();
+      applyGradientToPreview();
+      autoSave();
+    }
+
+    function setSLFromClick(e) {
+      const canvas = document.getElementById('cp-sl-canvas');
+      if (!canvas) return;
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      const x = (e.clientX - rect.left) * scaleX;
+      const y = (e.clientY - rect.top) * scaleY;
+      currentSat = Math.min(1, Math.max(0, x / canvas.width));
+      currentLight = 1 - Math.min(1, Math.max(0, y / canvas.height));
+      drawSLCanvas();
+      updateColorFromHsl();
+    }
+
+    // ----- Render Functions -----
+    function renderGmBar() {
+      const canvas = document.getElementById('gm-bar');
+      const w = canvas.offsetWidth || 800;
+      canvas.width = w * 2; canvas.height = 48;
+      const ctx = canvas.getContext('2d');
+      const g = ctx.createLinearGradient(0, 0, canvas.width, 0);
+      const s = [...stops].sort((a,b)=>a.pos-b.pos);
+      s.forEach(st => g.addColorStop(Math.min(1, Math.max(0, st.pos)), st.color));
+      ctx.fillStyle = g;
+      ctx.fillRect(0,0,canvas.width,canvas.height);
+    }
+
+    function renderHandles() {
+      const row = document.getElementById('gm-handle-row');
+      row.innerHTML = '';
+      stops.forEach((st, i) => {
+        const h = document.createElement('div');
+        h.className = 'gm-handle' + (i === selectedStop ? ' selected' : '');
+        h.style.left = (st.pos * 100) + '%';
+        h.style.background = st.color;
+        h.addEventListener('mousedown', e => { selectedStop = i; renderAll(); e.preventDefault(); });
+        h.addEventListener('touchstart', e => { selectedStop = i; renderAll(); }, {passive:true});
+        row.appendChild(h);
+      });
+    }
+
+    function renderChips() {
+      const wrap = document.getElementById('gm-stops');
+      wrap.innerHTML = '';
+      stops.forEach((st, i) => {
+        const chip = document.createElement('div');
+        chip.className = 'gm-stop-chip' + (i === selectedStop ? ' selected' : '');
+        chip.innerHTML = `<span class="chip-swatch" style="background:${st.color}"></span>${Math.round(st.pos*100)}%<span class="chip-del" onclick="deleteStop(${i},event)">✕</span>`;
+        chip.addEventListener('click', () => { selectedStop = i; renderAll(); });
+        wrap.appendChild(chip);
+      });
+      const addBtn = document.createElement('button');
+      addBtn.className = 'add-stop-btn';
+      addBtn.textContent = '+ Stop';
+      addBtn.onclick = () => { addStop(); };
+      wrap.appendChild(addBtn);
+    }
+
+    function renderEditor() {
+      const ed = document.getElementById('gm-stop-editor');
+      const st = stops[selectedStop];
+      const hsl = hexToHsl(st.color);
+      currentHue = hsl.h;
+      currentSat = hsl.s;
+      currentLight = hsl.l;
+
+      ed.innerHTML = `
+        <div style="display:flex; align-items:center; gap:12px; width:100%; flex-wrap:wrap;">
+          <div class="stop-color-preview" style="background:${st.color};" onclick="togglePicker()"></div>
+          <div class="hex-field-row">
+            <input type="text" id="hex-input-field" value="${st.color.toUpperCase()}" maxlength="7" placeholder="#RRGGBB" onchange="updateHexFromField(this.value)">
+            <button class="pick-btn" onclick="togglePicker()">🎨 Pick</button>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px; margin-left:auto;">
+            <span class="ctrl-label">Pos</span>
+            <input type="range" id="stop-pos" min="0" max="100" value="${Math.round(st.pos*100)}" oninput="updateStopPos(this.value)" style="width:90px;">
+            <span class="ctrl-val">${Math.round(st.pos*100)}%</span>
+          </div>
+        </div>
+        <div id="cp-panel-container" style="width:100%;"></div>
+      `;
+
+      const panelDiv = document.getElementById('cp-panel-container');
+      if (pickerVisible) {
+        panelDiv.innerHTML = `
+          <div class="cp-panel">
+            <div class="cp-hue-row">
+              <label>Hue</label>
+              <input type="range" class="cp-hue-slider" id="cp-hue" min="0" max="360" value="${currentHue}" oninput="updateHue(this.value)">
+              <span id="hue-val" class="ctrl-val">${Math.round(currentHue)}°</span>
+            </div>
+            <div class="cp-sl-canvas-wrap">
+              <canvas id="cp-sl-canvas" width="200" height="200"></canvas>
+              <div id="cp-sl-handle" class="cp-sl-handle"></div>
+            </div>
+            <div class="cp-footer">
+              <input type="text" id="cp-hex-input" class="cp-hex-input" value="${st.color.toUpperCase()}" maxlength="7" onchange="updateHexFromPanel(this.value)">
+              <button class="cp-close-btn" onclick="togglePicker()">Close</button>
+            </div>
+          </div>
+        `;
+        setTimeout(() => {
+          drawSLCanvas();
+          const slCanvas = document.getElementById('cp-sl-canvas');
+          slCanvas.addEventListener('click', setSLFromClick);
+          let dragging = false;
+          slCanvas.addEventListener('mousedown', (e) => { dragging = true; setSLFromClick(e); });
+          window.addEventListener('mouseup', () => dragging = false);
+          window.addEventListener('mousemove', (e) => { if (dragging) setSLFromClick(e); });
+        }, 20);
+      } else {
+        panelDiv.innerHTML = '';
+      }
+    }
+
+    function renderAll() {
+      renderGmBar();
+      renderHandles();
+      renderChips();
+      renderEditor();
+      document.getElementById('angle-val').textContent = gradAngle + '°';
+      applyGradientToPreview();
+    }
+
+    // ----- Global functions for onclick -----
+    window.togglePicker = function() {
+      pickerVisible = !pickerVisible;
+      renderEditor();
+    };
+
+    window.updateHue = function(val) {
+      currentHue = parseFloat(val);
+      const hueVal = document.getElementById('hue-val');
+      if (hueVal) hueVal.textContent = Math.round(currentHue) + '°';
+      drawSLCanvas();
+      updateColorFromHsl();
+    };
+
+    window.updateHexFromField = function(val) {
+      if (/^#[0-9A-F]{6}$/i.test(val)) {
+        stops[selectedStop].color = val.toUpperCase();
+        const hsl = hexToHsl(val);
+        currentHue = hsl.h;
+        currentSat = hsl.s;
+        currentLight = hsl.l;
+        renderEditor();
+        renderGmBar();
+        renderHandles();
+        renderChips();
+        applyGradientToPreview();
+        autoSave();
+      } else {
+        document.getElementById('hex-input-field').value = stops[selectedStop].color;
+      }
+    };
+
+    window.updateHexFromPanel = function(val) {
+      if (/^#[0-9A-F]{6}$/i.test(val)) {
+        stops[selectedStop].color = val.toUpperCase();
+        const hsl = hexToHsl(val);
+        currentHue = hsl.h;
+        currentSat = hsl.s;
+        currentLight = hsl.l;
+        renderEditor();
+        renderGmBar();
+        renderHandles();
+        renderChips();
+        applyGradientToPreview();
+        autoSave();
+      } else {
+        document.getElementById('cp-hex-input').value = stops[selectedStop].color;
+      }
+    };
+
+    window.updateStopPos = function(val) {
+      stops[selectedStop].pos = val / 100;
+      renderAll();
+      autoSave();
+    };
+
+    window.deleteStop = function(i, e) {
+      e.stopPropagation();
+      if (stops.length <= 2) return;
+      stops.splice(i, 1);
+      selectedStop = Math.min(selectedStop, stops.length - 1);
+      renderAll();
+      autoSave();
+    };
+
+    function addStop() {
+      const midPos = stops.length > 1 ? (stops[0].pos + stops[stops.length-1].pos) / 2 : 0.5;
+      stops.push({ pos: midPos, color: '#ffffff' });
+      selectedStop = stops.length - 1;
+      renderAll();
+      autoSave();
+    }
+
+    window.changeAngle = function(delta) {
+      gradAngle = ((gradAngle + delta) % 360 + 360) % 360;
+      renderAll();
+      autoSave();
+    };
+
+    // ----- Drag on gradient bar -----
+    (function(){
+      const bar = document.getElementById('gm-bar');
+      let dragging = false;
+      function getPos(e) {
+        const rect = bar.getBoundingClientRect();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        return Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
+      }
+      bar.addEventListener('click', e => {
+        const p = getPos(e);
+        stops.push({ pos: p, color: '#ffffff' });
+        selectedStop = stops.length - 1;
+        renderAll();
+        autoSave();
+      });
+      function onMove(e) {
+        if (!dragging) return;
+        const rect = bar.getBoundingClientRect();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        stops[selectedStop].pos = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
+        renderAll();
+        autoSave();
+      }
+      function onUp() { dragging = false; }
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+      document.addEventListener('touchmove', onMove, {passive:true});
+      document.addEventListener('touchend', onUp);
+    })();
+
+    // ----- Preview & Fill Mode -----
+    function applyGradientToPreview() {
+      const lines = preview.querySelectorAll('.line');
+      if (currentFill === 'gradient') {
+        const css = gradientCSS();
+        lines.forEach(l => {
+          l.style.background = css;
+          l.style.webkitBackgroundClip = 'text';
+          l.style.webkitTextFillColor = 'transparent';
+          l.style.backgroundClip = 'text';
+        });
+        previewBg.className = 'preview-bg-dark';
+      } else {
+        const col = currentFill === 'white' ? '#fff' : '#000';
+        lines.forEach(l => {
+          l.style.background = 'none';
+          l.style.webkitBackgroundClip = 'unset';
+          l.style.webkitTextFillColor = col;
+          l.style.backgroundClip = 'unset';
+        });
+        previewBg.className = currentFill === 'black' ? 'preview-bg-light' : 'preview-bg-dark';
+      }
+    }
+
+    window.setFill = function(fill, btn) {
+      currentFill = fill;
+      document.querySelectorAll('[data-fill]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      applyGradientToPreview();
+      autoSave();
+    };
+
+    function updatePreview() {
+      const font = ffSelect.value;
+      const weight = currentWeight;
+      const lines = ta.value.split('\n');
+      preview.innerHTML = lines.map(l => '<span class="line">' + (l || '&#8203;') + '</span>').join('');
+      preview.style.fontSize = fsSlider.value + 'px';
+      preview.style.fontFamily = "'" + font + "', sans-serif";
+      preview.style.fontWeight = weight;
+      applyGradientToPreview();
+    }
+
+    // Event listeners for controls
+    ta.addEventListener('input', updatePreview);
+    fsSlider.addEventListener('input', () => {
+      document.getElementById('size-val').textContent = fsSlider.value + 'px';
+      updatePreview();
+    });
+    padSlider.addEventListener('input', () => {
+      document.getElementById('pad-val').textContent = padSlider.value + 'px';
+    });
+    
+    ffSelect.addEventListener('change', () => {
+      updateWeightOptions(ffSelect.value);
+      updatePreview();
+    });
+    
+    weightSelect.addEventListener('change', () => {
+      currentWeight = parseInt(weightSelect.value);
+      updatePreview();
+      autoSave();
+    });
+
+    // ----- Export PNG -----
+    window.exportPNG = async function() {
+      const text = ta.value || 'Type below to preview';
+      const fontSize = parseInt(fsSlider.value);
+      const padding = parseInt(padSlider.value);
+      const scale = parseInt(document.getElementById('scale').value);
+      const fontName = ffSelect.value;
+      const fontWeight = currentWeight;
+      const lineH = fontSize * 1.15;
+      const fontStr = fontWeight + ' ' + fontSize + 'px ' + fontName;
+
+      const canvas = document.getElementById('preview-canvas');
+      const ctx = canvas.getContext('2d');
+      ctx.font = fontStr;
+
+      const lines = text.split('\n');
+      const widths = lines.map(l => ctx.measureText(l || ' ').width);
+      const maxW = Math.max(...widths);
+      const canvasW = Math.ceil(maxW + padding * 2);
+      const canvasH = Math.ceil(lines.length * lineH + padding * 2);
+
+      canvas.width = canvasW * scale;
+      canvas.height = canvasH * scale;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.scale(scale, scale);
+      ctx.clearRect(0, 0, canvasW, canvasH);
+      ctx.font = fontStr;
+      ctx.textBaseline = 'top';
+
+      const sortedStops = [...stops].sort((a,b)=>a.pos-b.pos);
+
+      lines.forEach((line, i) => {
+        const lw = widths[i];
+        const x = padding;
+        const y = padding + i * lineH;
+
+        if (currentFill === 'gradient') {
+          const grad = ctx.createLinearGradient(x, 0, x + lw, 0);
+          sortedStops.forEach(st => grad.addColorStop(Math.min(1,Math.max(0,st.pos)), st.color));
+          ctx.fillStyle = grad;
+        } else {
+          ctx.fillStyle = currentFill === 'white' ? '#ffffff' : '#000000';
+        }
+        ctx.fillText(line, x, y);
+      });
+
+      const dataURL = canvas.toDataURL('image/png');
+      document.getElementById('preview-img').src = dataURL;
+      document.getElementById('preview-wrap').classList.add('visible');
+
+      const fname = (ta.value.trim().slice(0, 24).replace(/[^a-z0-9]/gi, '-') || 'gradient-text') + '-' + currentFill + '.png';
+      const dlBtn = document.getElementById('dl-btn');
+      const iosHint = document.getElementById('ios-hint');
+
+      if (isIOS) {
+        iosHint.style.display = 'block';
+        dlBtn.textContent = '↗ Open image in new tab';
+        dlBtn.onclick = () => window.open(dataURL, '_blank');
+      } else {
+        iosHint.style.display = 'none';
+        dlBtn.textContent = '↓ Download PNG';
+        dlBtn.onclick = () => {
+          const a = document.createElement('a');
+          a.href = dataURL; a.download = fname; a.click();
+        };
+      }
+    };
+
+    // Initialize on load
+    window.addEventListener('load', () => {
+      // Set initial weight options
+      updateWeightOptions(ffSelect.value);
+      // Try to load saved settings (this will override currentWeight if saved)
+      loadFromStorage();
+      // If nothing was loaded, ensure the weight select matches default
+      weightSelect.value = currentWeight;
+      renderAll();
+      updateFillButtons();
+      updatePreview();
+    });
+    setTimeout(() => { renderAll(); updatePreview(); }, 50);
+  })();
+</script>
+</body>
+</html>
